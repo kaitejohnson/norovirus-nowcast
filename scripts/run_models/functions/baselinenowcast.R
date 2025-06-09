@@ -11,6 +11,9 @@ run_baselinenowcast <- function(.data,
 
   n_history_delay <- model_hyperparams$n_history_delay
   n_retrospective_nowcasts <- model_hyperparams$n_retrospective_nowcasts
+  
+  eval_timeframe <- model_hyperparams$eval_timeframe
+  eval_timeframe <- 50
 
   # prepare data
   target_data <- .data |>
@@ -40,6 +43,17 @@ run_baselinenowcast <- function(.data,
     observed_data,
     include_days = n_training_volume - 1
   )
+  
+  target_data_summary <- target_data |>
+    epinowcast::enw_filter_report_dates(
+      latest_date = prediction_end_date + lubridate::days(eval_timeframe)
+    ) |>
+    epinowcas::enw_filter_reference_dates(
+      latest_date = prediction_end_date
+    )
+    rename(target = confirm) |>
+    mutate(time = row_number()) |>
+    select(target, reference_date, time)
 
   latest_training_data <- epinowcast::enw_latest_data(training_data)
 
@@ -98,10 +112,10 @@ run_baselinenowcast <- function(.data,
     dplyr::mutate(reference_date = as.Date(reference_date))
 
   obs_with_nowcast_draws_df <- nowcast_draws_df |>
-    dplyr::left_join(latest_data_prepped, by = "time") |>
+    dplyr::left_join(target_data_summary, by = "time") |>
     dplyr::rename(.value = pred_count,
                   specimen_date = reference_date,
-                  target = obs_confirm,
+                  target = obs_confirm, # This is the data as of the nowcast date, not the target data 
                   .sample = draw) |>
     dplyr::select(specimen_date, .sample, target, .value) |>
     dplyr::mutate(model = "baselinenowcast")

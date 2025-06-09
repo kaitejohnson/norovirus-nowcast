@@ -66,14 +66,16 @@ test_results <- run_baselinenowcast(.data = training_data,
                     model_hyperparams = config$hyperparams$baselinenowcast)
 test_results
 
-test_results |>
+test_results |> filter(specimen_date >= "2023-10-02") |>
   ggplot() +
   geom_point(aes(x=specimen_date, y=target)) +
+  geom_line(aes(x=specimen_date, y=pi_50)) + 
   geom_ribbon(aes(x=specimen_date, ymax=pi_95, ymin=pi_5, alpha="90%")) +
   geom_ribbon(aes(x=specimen_date, ymax=pi_75, ymin=pi_25, alpha="50%")) +
   scale_alpha_manual(values = c("90%"=0.3,
                                 "50%" = 0.5)) +
-  scale_y_continuous(trans = "sqrt") +
+  # scale_y_continuous(trans = "sqrt") +
+  coord_cartesian(ylim = c(0, 153)) +
   xlab("Reference date") +
   ylab("cases") +
   theme(legend.position = "bottom")
